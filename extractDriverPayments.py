@@ -21,23 +21,35 @@ if csv_file and xlsx_file:
     df_transac['mobile'] = df_transac['mobile'].str.lstrip('+')
     for col in ['amount', 'fee', 'balance']:
         df_transac[col] = pd.to_numeric(df_transac[col], errors='coerce')
+    
 
     # --- Read Excel ---
-    df_drivers = pd.read_excel(xlsx_file, sheet_name='liste')  # Change if needed
+    drivers = pd.read_excel(xlsx_file, sheet_name='liste')  # Change if needed
+    drivers=drivers.fillna('')
+    drivers['tel'] = drivers['tel'].to_string()
+    drivers['tel'] = drivers['tel'].str.lstrip('+')
 
     # TODO: Insert your real processing logic here
+    merchPayments = df_transac[df_transac['type']=='merchant_payment']
+    driverPayments = merchPayments[merchPayments['mobile'].isin(drivers['tel'])]
+    driverPayments['timestamp'] = pd.to_datetime(driverPayments['timestamp']).dt.date
+
+
     # For now, just show head of both
     st.subheader("🔍 Transactions Preview")
     st.dataframe(df_transac.head())
 
     st.subheader("👤 Drivers Preview")
-    st.dataframe(df_drivers.head())
+    st.dataframe(drivers.head())
+
+    st.subheader("👤 Driver Payments Preview")
+    st.dataframe(driverPayments.head())
 
     # --- Export Excel result ---
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
         df_transac.to_excel(writer, index=False, sheet_name='Transactions')
-        df_drivers.to_excel(writer, index=False, sheet_name='Drivers')
+        drivers.to_excel(writer, index=False, sheet_name='Drivers')
 
     st.success("✅ Processing complete. Download your file below:")
     st.download_button(
