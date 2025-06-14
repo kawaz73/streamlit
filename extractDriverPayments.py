@@ -39,8 +39,13 @@ if csv_file and xlsx_file:
     driverPayments['recette'] = driverPayments['amount'] + driverPayments['fee']
     driverPayments = driverPayments.iloc[:,[0,7,13,3,4,8,1]]
 
-
-    # For now, just show head of both
+    
+    # Calculer les totaux par chauffeur
+    driverTotals = driverPayments.groupby(['name','mobile'], as_index=False).agg({
+        'recette': 'sum',
+        'amount': 'sum',
+        'fee': 'sum'
+    })
     st.subheader("🔍 Aperçu des transactions")
     st.dataframe(df_transac.head())
 
@@ -50,10 +55,14 @@ if csv_file and xlsx_file:
     st.subheader("👤 Aperçu des paiements chauffeurs")
     st.dataframe(driverPayments.head())
 
+    st.subheader("👤 Aperçu des totaux chauffeurs")
+    st.dataframe(driverTotals.head(20))
+
     # --- Export Excel result ---
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
         driverPayments.to_excel(writer, index=False, sheet_name='Transactions chauffeurs')
+        driverTotals.to_excel(writer, index=False, sheet_name='Totaux chauffeurs')
 
     st.success("✅ Traitement terminé. Télechargez l'Excel:")
     st.download_button(
