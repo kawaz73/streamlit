@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import io
 from datetime import datetime
+import openpyxl
 
 st.set_page_config(page_title="Illigo - Driver Payment Processor", layout="centered")
 st.title("🚗 Driver Payment Processor")
@@ -24,15 +25,18 @@ if csv_file and xlsx_file:
     
 
     # --- Read Excel ---
-    drivers = pd.read_excel(xlsx_file, sheet_name='liste')  # Change if needed
+    #drivers = pd.read_excel(xlsx_file, sheet_name='liste')  # Change if needed
+    drivers = pd.read_excel(xlsx_file, sheet_name='liste', dtype={'nom' : str, 'prénom' : str, 'tel' : str, 'statut' : str,'début' : str, 'fin' : str}
+                            ,parse_dates=['début', 'fin'])
     drivers=drivers.fillna('')
-    drivers['tel'] = drivers['tel'].to_string()
-    drivers['tel'] = drivers['tel'].str.lstrip('+')
+    #drivers['tel'] = drivers['tel'].to_string()
+    #drivers['tel'] = drivers['tel'].str.lstrip('+')
 
     # TODO: Insert your real processing logic here
     merchPayments = df_transac[df_transac['type']=='merchant_payment']
     driverPayments = merchPayments[merchPayments['mobile'].isin(drivers['tel'])]
     driverPayments['timestamp'] = pd.to_datetime(driverPayments['timestamp']).dt.date
+    driverPayments['recette'] = driverPayments['amount'] + driverPayments['fee']
 
 
     # For now, just show head of both
@@ -48,13 +52,12 @@ if csv_file and xlsx_file:
     # --- Export Excel result ---
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        df_transac.to_excel(writer, index=False, sheet_name='Transactions')
-        drivers.to_excel(writer, index=False, sheet_name='Drivers')
+        driverPayments.to_excel(writer, index=False, sheet_name='Transactions chauffeurs')
 
     st.success("✅ Processing complete. Download your file below:")
     st.download_button(
         label="📥 Download Excel File",
         data=output.getvalue(),
-        file_name="processed_output.xlsx",
+        file_name="driverpayments.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
