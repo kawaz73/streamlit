@@ -6,12 +6,12 @@ from datetime import datetime
 import openpyxl
 
 st.set_page_config(page_title="Illigo - Driver Payment Processor", layout="centered")
-st.title("🚗 Driver Payment Processor")
-st.markdown("Upload your monthly transaction report and driver list to generate a processed Excel file.")
+st.title("🚗 Extraction paiements chauffeurs illigo")
+st.markdown("Entrer les transactions Wave et la liste des chauffeurs pour générer un Excel avec les paiements chauffeurs.")
 
 # Upload CSV and Excel files
-csv_file = st.file_uploader("Upload Wave CSV report", type=["csv"])
-xlsx_file = st.file_uploader("Upload Excel driver list", type=["xlsx"])
+csv_file = st.file_uploader("Entrer le rapport Wave en CSV", type=["csv"])
+xlsx_file = st.file_uploader("Entrer le fichier Excel avec la liste des chauffeurs", type=["xlsx"])
 
 if csv_file and xlsx_file:
     # --- Read CSV ---
@@ -41,13 +41,13 @@ if csv_file and xlsx_file:
 
 
     # For now, just show head of both
-    st.subheader("🔍 Transactions Preview")
+    st.subheader("🔍 Aperçu des transactions")
     st.dataframe(df_transac.head())
 
-    st.subheader("👤 Drivers Preview")
+    st.subheader("👤 Aperçu des chauffeurs")
     st.dataframe(drivers.head())
 
-    st.subheader("👤 Driver Payments Preview")
+    st.subheader("👤 Aperçu des paiements chauffeurs")
     st.dataframe(driverPayments.head())
 
     # --- Export Excel result ---
@@ -55,9 +55,9 @@ if csv_file and xlsx_file:
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
         driverPayments.to_excel(writer, index=False, sheet_name='Transactions chauffeurs')
 
-    st.success("✅ Processing complete. Download your file below:")
+    st.success("✅ Traitement terminé. Télechargez l'Excel:")
     st.download_button(
-        label="📥 Download Excel File",
+        label="📥 Télécharger le fichier Excel",
         data=output.getvalue(),
         file_name="driverpayments.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
