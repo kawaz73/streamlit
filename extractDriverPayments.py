@@ -37,6 +37,7 @@ if csv_file and xlsx_file:
     driverPayments = merchPayments[merchPayments['mobile'].isin(drivers['tel'])]
     driverPayments['timestamp'] = pd.to_datetime(driverPayments['timestamp']).dt.date
     driverPayments['recette'] = driverPayments['amount'] + driverPayments['fee']
+    driverPayments = driverPayments.iloc[:,[0,7,13,3,4,8,1]]
 
 
     # For now, just show head of both
