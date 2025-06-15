@@ -16,13 +16,32 @@ if csv_file :
     # --- Read CSV ---
     columns = ['timestamp','id','type','amount','fee','balance','currency','name',
                'mobile','busName','busMobile','clientReference','apiSessId']
+    # df_transac = pd.read_csv(csv_file, encoding='utf-8', sep=',', dtype=str,
+    #                          names=columns, skiprows=1, index_col=None).fillna('')
+    
     df_transac = pd.read_csv(csv_file, encoding='utf-8', sep=',', dtype=str,
-                             names=columns, skiprows=1).fillna('')
+                              skiprows=1, index_col=None).fillna('')
+    num_columns = df_transac.shape[1]
+    if num_columns == 13:
+        columns = ['timestamp','id','type','amount','fee','balance','currency','name',
+               'mobile','busName','busMobile','clientReference','apiSessId']
+        df_transac.columns = columns
+    elif num_columns == 14:
+        columns = ['timestamp','id','type','amount','fee','balance','currency','name',
+               'mobile','busName','busMobile','counterpartyId','clientReference','apiSessId']
+        df_transac.columns = columns
+ 
+    st.subheader("🔍 Aperçu des transactions")
+    st.dataframe(df_transac.head())
+
+    # df_transac = pd.read_csv(csv_file, encoding='utf-8', sep=',', 
+    #                          names=columns, skiprows=1, index_col=None).fillna('')
     df_transac['mobile'] = df_transac['mobile'].str.lstrip('+')
     for col in ['amount', 'fee', 'balance']:
         df_transac[col] = pd.to_numeric(df_transac[col], errors='coerce')
     
-    df_transac['timestamp'] = pd.to_datetime(df_transac['timestamp']).dt.date
+    # df_transac['timestamp'] = pd.to_datetime(df_transac['timestamp']).dt.date
+    df_transac['timestamp'] = pd.to_datetime(df_transac['timestamp'],format='%Y-%m-%d %H:%M:%S%z', errors='coerce').dt.date
     
     # TODO: Insert your real processing logic here
     cashWithdrawals = df_transac[df_transac['type'].isin(['merchant_sweep'])]
@@ -69,27 +88,27 @@ if csv_file :
     st.subheader("Synthèse")
     st.dataframe(synthese.head())
 
-    st.subheader("🔍 Aperçu des transactions")
-    st.dataframe(df_transac.head())
+    # st.subheader("🔍 Aperçu des transactions")
+    # st.dataframe(df_transac.head())
 
-    st.subheader("🔍 Retraits espèce")
-    st.dataframe(cashWithdrawals.head())
+    # st.subheader("🔍 Retraits espèce")
+    # st.dataframe(cashWithdrawals.head())
 
-    st.subheader("👤 Aperçu des paiements marchands")
-    st.dataframe(merchPayments.head())
-    st.subheader("👤 Aperçu des paiements marchands par utilisateur")
-    st.dataframe(merchPaymentsbyUser.head())
-    st.subheader("👤 Aperçu des paiements portefeuille")
-    st.dataframe(walletPayments.head())
+    # st.subheader("👤 Aperçu des paiements marchands")
+    # st.dataframe(merchPayments.head())
+    # st.subheader("👤 Aperçu des paiements marchands par utilisateur")
+    # st.dataframe(merchPaymentsbyUser.head())
+    # st.subheader("👤 Aperçu des paiements portefeuille")
+    # st.dataframe(walletPayments.head())
 
-    st.subheader("👤 Aperçu des paiements portefeuille par utilisateur")
-    st.dataframe(walletPaymentsbyUser.head())
+    # st.subheader("👤 Aperçu des paiements portefeuille par utilisateur")
+    # st.dataframe(walletPaymentsbyUser.head())
 
-    st.subheader("👤 Aperçu des paiements fournisseurs")
-    st.dataframe(supplierPayments.head())
+    # st.subheader("👤 Aperçu des paiements fournisseurs")
+    # st.dataframe(supplierPayments.head())
 
-    st.subheader("🔍 Aperçu des paiements fournisseurs par utilisateur")
-    st.dataframe(supplierPaymentsbyUser.head())
+    # st.subheader("🔍 Aperçu des paiements fournisseurs par utilisateur")
+    # st.dataframe(supplierPaymentsbyUser.head())
 
 
     # --- Export Excel result ---
