@@ -88,29 +88,6 @@ if csv_file :
     st.subheader("Synthèse")
     st.dataframe(synthese.head())
 
-    # st.subheader("🔍 Aperçu des transactions")
-    # st.dataframe(df_transac.head())
-
-    # st.subheader("🔍 Retraits espèce")
-    # st.dataframe(cashWithdrawals.head())
-
-    # st.subheader("👤 Aperçu des paiements marchands")
-    # st.dataframe(merchPayments.head())
-    # st.subheader("👤 Aperçu des paiements marchands par utilisateur")
-    # st.dataframe(merchPaymentsbyUser.head())
-    # st.subheader("👤 Aperçu des paiements portefeuille")
-    # st.dataframe(walletPayments.head())
-
-    # st.subheader("👤 Aperçu des paiements portefeuille par utilisateur")
-    # st.dataframe(walletPaymentsbyUser.head())
-
-    # st.subheader("👤 Aperçu des paiements fournisseurs")
-    # st.dataframe(supplierPayments.head())
-
-    # st.subheader("🔍 Aperçu des paiements fournisseurs par utilisateur")
-    # st.dataframe(supplierPaymentsbyUser.head())
-
-
     # --- Export Excel result ---
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine='openpyxl') as writer:

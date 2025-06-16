@@ -46,6 +46,11 @@ if csv_file and xlsx_file:
         'amount': 'sum',
         'fee': 'sum'
     })
+
+    driverTotals['recette TTC'] = driverTotals['recette']
+    driverTotals['recette HT'] = (driverTotals['recette TTC'] / 1.18).round(0).astype(int)
+    driverTotals['tva'] = driverTotals['recette TTC'] - driverTotals['recette HT']
+
     st.subheader("🔍 Aperçu des transactions")
     st.dataframe(df_transac.head())
 
@@ -61,8 +66,8 @@ if csv_file and xlsx_file:
     # --- Export Excel result ---
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        driverPayments.to_excel(writer, index=False, sheet_name='Transactions chauffeurs')
         driverTotals.to_excel(writer, index=False, sheet_name='Totaux chauffeurs')
+        driverPayments.to_excel(writer, index=False, sheet_name='Transactions chauffeurs')
 
     st.success("✅ Traitement terminé. Télechargez l'Excel:")
     st.download_button(
