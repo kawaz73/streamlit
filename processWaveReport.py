@@ -51,18 +51,18 @@ if csv_file :
         'amount': 'sum',
         'fee': 'sum'
     }).sort_values(by='amount', ascending=False).reset_index(drop=True)
-    merchPaymentsbyUser['amount TTC'] = merchPaymentsbyUser['amount'] - merchPaymentsbyUser['fee']
-    merchPaymentsbyUser['amount HT'] = (merchPaymentsbyUser['amount TTC'] / 1.18).round(0).astype(int)
-    merchPaymentsbyUser['tva'] = merchPaymentsbyUser['amount TTC'] - merchPaymentsbyUser['amount HT']
+    merchPaymentsbyUser.loc[:,'amount TTC'] = merchPaymentsbyUser['amount'] - merchPaymentsbyUser['fee']
+    merchPaymentsbyUser.loc[:,'amount HT'] = (merchPaymentsbyUser['amount TTC'] / 1.18).round(0).astype(int)
+    merchPaymentsbyUser.loc[:,'tva'] = merchPaymentsbyUser['amount TTC'] - merchPaymentsbyUser['amount HT']
 
     walletPayments = df_transac[df_transac['type'].isin(['api_checkout', 'api_checkout_refund'])]
     walletPaymentsbyUser = walletPayments.groupby(['mobile','name'], as_index=False).agg({
         'amount': 'sum',
         'fee': 'sum'
     }).sort_values(by='amount', ascending=False).reset_index(drop=True)
-    walletPaymentsbyUser['amount TTC'] = walletPaymentsbyUser['amount'] - walletPaymentsbyUser['fee']
-    walletPaymentsbyUser['amount HT'] = (walletPaymentsbyUser['amount TTC']/ 1.18).round(0).astype(int)
-    walletPaymentsbyUser['tva'] = walletPaymentsbyUser['amount TTC'] - walletPaymentsbyUser['amount HT']
+    walletPaymentsbyUser.loc[:,'amount TTC'] = walletPaymentsbyUser['amount'] - walletPaymentsbyUser['fee']
+    walletPaymentsbyUser.loc[:,'amount HT'] = (walletPaymentsbyUser['amount TTC']/ 1.18).round(0).astype(int)
+    walletPaymentsbyUser.loc[:,'tva'] = walletPaymentsbyUser['amount TTC'] - walletPaymentsbyUser['amount HT']
 
     supplierPayments = df_transac[df_transac['type']=='single_payment']
     supplierPaymentsbyUser = supplierPayments.groupby(['mobile','name'], as_index=False).agg({
