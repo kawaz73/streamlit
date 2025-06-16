@@ -47,7 +47,7 @@ if csv_file and xlsx_file:
         'fee': 'sum'
     })
 
-    driverTotals['recette TTC'] = driverTotals['recette']
+    driverTotals['recette TTC'] = driverTotals['recette']- driverTotals['fee']
     driverTotals['recette HT'] = (driverTotals['recette TTC'] / 1.18).round(0).astype(int)
     driverTotals['tva'] = driverTotals['recette TTC'] - driverTotals['recette HT']
 
