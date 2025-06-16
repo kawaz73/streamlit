@@ -86,11 +86,11 @@ if csv_file :
         how='left'
     )
 
-    invoicebyoperator['frais wave'] = (invoicebyoperator['montant'] * frais_wave).round(0).astype(int)
-    invoicebyoperator['reversement opérateur'] = (invoicebyoperator['montant'] * invoicebyoperator['Commission Recettes (%)'] / 100).round(0).astype(int) - invoicebyoperator['frais wave']
-    invoicebyoperator['commission illigo TTC'] = invoicebyoperator['montant'] - invoicebyoperator['reversement opérateur']
-    invoicebyoperator['commission illigo HT'] = (invoicebyoperator['commission illigo TTC'] / (1 + tva)).round(0).astype(int)
-    invoicebyoperator['tva'] = invoicebyoperator['commission illigo TTC'] - invoicebyoperator['commission illigo HT']
+    invoicebyoperator.loc[:,'frais wave'] = (invoicebyoperator['montant'] * frais_wave).round(0).astype(int)
+    invoicebyoperator.loc[:,'reversement opérateur'] = (invoicebyoperator['montant'] * invoicebyoperator['Commission Recettes (%)'] / 100).round(0).astype(int) - invoicebyoperator['frais wave']
+    invoicebyoperator.loc[:,'commission illigo TTC'] = invoicebyoperator['montant'] - invoicebyoperator['reversement opérateur']
+    invoicebyoperator.loc[:,'commission illigo HT'] = (invoicebyoperator['commission illigo TTC'] / (1 + tva)).round(0).astype(int)
+    invoicebyoperator.loc[:,'tva'] = invoicebyoperator['commission illigo TTC'] - invoicebyoperator['commission illigo HT']
     
     # cols = ['montant', 'frais wave', 
     #        'reversement opérateur', 'commission illigo TTC', 'commission illigo HT', 'tva']
