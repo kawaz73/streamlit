@@ -35,9 +35,8 @@ if csv_file and xlsx_file:
     # TODO: Insert your real processing logic here
     merchPayments = df_transac[df_transac['type']=='merchant_payment']
     driverPayments = merchPayments[merchPayments['mobile'].isin(drivers['tel'])]
-    driverPayments['timestamp'] = pd.to_datetime(driverPayments['timestamp']).dt.date
-    driverPayments['recette'] = driverPayments['amount'] + driverPayments['fee']
-    driverPayments = driverPayments.iloc[:,[0,7,13,3,4,8,1]]
+    driverPayments.loc[:,'timestamp'] = pd.to_datetime(driverPayments['timestamp']).dt.date
+    driverPayments.loc[:,'recette'] = driverPayments['amount'] + driverPayments['fee']
 
     
     # Calculer les totaux par chauffeur
@@ -47,9 +46,9 @@ if csv_file and xlsx_file:
         'fee': 'sum'
     })
 
-    driverTotals['recette TTC'] = driverTotals['recette']- driverTotals['fee']
-    driverTotals['recette HT'] = (driverTotals['recette TTC'] / 1.18).round(0).astype(int)
-    driverTotals['tva'] = driverTotals['recette TTC'] - driverTotals['recette HT']
+    driverTotals.loc[:,'recette TTC'] = driverTotals['recette']- driverTotals['fee']
+    driverTotals.loc[:,'recette HT'] = (driverTotals['recette TTC'] / 1.18).round(0).astype(int)
+    driverTotals.loc[:,'tva'] = driverTotals['recette TTC'] - driverTotals['recette HT']
 
     st.subheader("🔍 Aperçu des transactions")
     st.dataframe(df_transac.head())
