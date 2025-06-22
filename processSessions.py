@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import io
 from datetime import datetime
+import matplotlib.pyplot as plt
 import openpyxl
 #import math
 
@@ -100,7 +101,7 @@ if csv_file :
     
     # --- Filter sessions by date range ---
     df_sessions = df_sessions[(df_sessions['debut'].dt.date >= date_debut) & (df_sessions['fin'].dt.date <= date_fin)]
-    
+
 
     invoicebyoperator = df_sessions.groupby(['Opérateur'], as_index=False).agg({
         'montant': 'sum'
@@ -125,7 +126,23 @@ if csv_file :
     #     invoicebyoperator[col] = invoicebyoperator[col].round(0).astype(int)
 
     st.subheader("🔍 Résumé facturation par opérateur")
-    st.dataframe(invoicebyoperator.head())
+    st.dataframe(invoicebyoperator)
+    # st.write(invoicebyoperator)
+
+    # plot 'commission illigo TTC' by 'Opérateur'
+    import matplotlib.ticker as mticker
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+    invoicebyoperator.plot(kind='bar', x='Opérateur', y='commission illigo HT', ax=ax, color='skyblue', legend=False)
+    ax.set_title('Commission Illigo HT par Opérateur')
+    ax.set_ylabel('Commission Illigo HT (CFA)')
+    ax.set_xlabel('Opérateur')
+    ax.grid(axis='y', linestyle='--', alpha=0.7)
+    # ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f'{int(x):,}'.replace(',', ' ')))  # Use non-breaking space for thousands separator
+    ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f'{int(x):,}'))  # Use ',' for thousands separator
+    st.pyplot(fig)
+    # Save the plot to a file
+    fig.savefig("commission_illigo_ht_par_operateur.png", bbox_inches='tight')
 
     # --- Export Excel result ---
     output = io.BytesIO()
