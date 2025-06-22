@@ -5,6 +5,7 @@ import io
 from datetime import datetime
 import matplotlib.pyplot as plt
 import openpyxl
+import base64
 #import math
 
 st.set_page_config(page_title="Illigo - Analyse Sessions Console", layout="centered")
@@ -141,8 +142,16 @@ if csv_file :
     # ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f'{int(x):,}'.replace(',', ' ')))  # Use non-breaking space for thousands separator
     ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f'{int(x):,}'))  # Use ',' for thousands separator
     st.pyplot(fig)
+    # Add a button to download the plot as a PNG file
+
+    img_bytes = io.BytesIO()
+    fig.savefig(img_bytes, format='png', bbox_inches='tight')
+    img_bytes.seek(0)
+    b64 = base64.b64encode(img_bytes.read()).decode()
+    href = f'<a href="data:image/png;base64,{b64}" download="commission_illigo_ht_par_operateur.png">📥 Télécharger le graphique (PNG)</a>'
+    st.markdown(href, unsafe_allow_html=True)
     # Save the plot to a file
-    fig.savefig("commission_illigo_ht_par_operateur.png", bbox_inches='tight')
+    # fig.savefig("commission_illigo_ht_par_operateur.png", bbox_inches='tight')
 
     # --- Export Excel result ---
     output = io.BytesIO()
