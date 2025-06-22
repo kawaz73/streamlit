@@ -6,7 +6,7 @@ from datetime import datetime
 import openpyxl
 #import math
 
-st.set_page_config(page_title="Illigo - Analyse Rapport Wave", layout="centered")
+st.set_page_config(page_title="Illigo - Analyse Sessions Console", layout="centered")
 st.title("🧮 Illigo - Analyse Sessions Console")
 st.markdown("Télécharger le rapport de sessions de charge en CSV")
 
@@ -38,6 +38,26 @@ if csv_file :
     liste_operateurs.sort()
     comm_operateurs_recettes = {}
     comm_operateurs_profits = {}
+
+    # Use session state to track form submissions
+    if 'date_form_submitted' not in st.session_state:
+        st.session_state['date_form_submitted'] = False
+    if 'param_form_submitted' not in st.session_state:
+        st.session_state['param_form_submitted'] = False
+
+    # First form: select date range
+    with st.sidebar.form("param_date"):
+        st.write("Sélectionnez la période de facturation")
+        date_debut = st.date_input("Date de début", value=df_sessions['debut'].min().date())
+        date_fin = st.date_input("Date de fin", value=df_sessions['fin'].max().date())
+        submitted_date = st.form_submit_button("Valider")
+    if submitted_date:
+        st.session_state['date_form_submitted'] = True
+
+    if not st.session_state['date_form_submitted']:
+        st.stop()
+
+    # Second form: operator commissions
     with st.sidebar.form("param_form"):
         for operateur in liste_operateurs:
             st.write(f"Opérateur: {operateur}")
@@ -45,7 +65,7 @@ if csv_file :
                 f"Commission recettes ({operateur}) (%)",
                 min_value=0,
                 max_value=100,
-                value=int(comm_operateur*100) if operateur!='Illigo' else 1,  # Convert to integer percentage
+                value=int(comm_operateur*100) if operateur!='Illigo' else 1,
                 step=1,
                 key=f"comm_{operateur}"
             )
@@ -53,13 +73,15 @@ if csv_file :
                 f"Commission profit ({operateur}) (%)",
                 min_value=0,
                 max_value=100,
-                value=0,  # Default to 0%
+                value=0,
                 step=1,
                 key=f"comm_{operateur}_profit"
-            )  
-        submitted = st.form_submit_button("Valider")
-    
-    if not submitted:
+            )
+        submitted_param = st.form_submit_button("Valider")
+    if submitted_param:
+        st.session_state['param_form_submitted'] = True
+
+    if not st.session_state['param_form_submitted']:
         st.stop()
 
     df_comms_operateurs = pd.DataFrame(columns=['Opérateur', 'Commission Recettes (%)', 'Commission Profits (%)'])
@@ -76,6 +98,10 @@ if csv_file :
     st.subheader("🔍 Aperçu dataframe commissions opérateur")
     st.dataframe(df_comms_operateurs.head())
     
+    # --- Filter sessions by date range ---
+    df_sessions = df_sessions[(df_sessions['debut'].dt.date >= date_debut) & (df_sessions['fin'].dt.date <= date_fin)]
+    
+
     invoicebyoperator = df_sessions.groupby(['Opérateur'], as_index=False).agg({
         'montant': 'sum'
     }).sort_values(by='montant', ascending=False).reset_index(drop=True)
