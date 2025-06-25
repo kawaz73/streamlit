@@ -4,13 +4,101 @@ import numpy as np
 import io
 from datetime import datetime
 import matplotlib.pyplot as plt
+import matplotlib.ticker as mticker
 import openpyxl
 import base64
 #import math
 
+@st.cache_data
+def load_sessions(file):
+    """Load sessions from a CSV file."""
+    print("Loading sessions from file:", file.name)
+    columns = ['Site', 'Borne', 'Opérateur', 'Connecteur', 'Organisation', 'Type util', 'Nom util', 'NomPrenom', 'badgeid', 'debut', 'fin', 'duree', 'energie', 'montant', 'devise', 'arret']
+    df = pd.read_csv(file, encoding='utf-8', sep=';', dtype=str, names=columns, skiprows=1)
+    # pretraitement des données
+    df['debut']=pd.to_datetime(df['debut'])
+    df['fin']=pd.to_datetime(df['fin'])
+    df['duree']=pd.to_datetime(df['duree'], format = "%H:%M")
+    df['energie']=pd.to_numeric(df['energie'],downcast='float')/1000
+    df['montant']=pd.to_numeric(df['montant'],downcast='float').apply(np.ceil)
+
+    # affichage des données lues du CSV et traitées
+    st.subheader("🔍 Aperçu des sessions")
+    st.dataframe(df.head())
+    return df
+
+@st.cache_data
+def calculateInvoice(df_sessions, tva, frais_wave, df_comms_operateurs):
+    """Calculate the invoice based on the sessions data."""
+    print("Calculating invoice...")
+    invoicebyoperator = df_sessions.groupby(['Opérateur','Site'], as_index=False).agg({
+        'montant': 'sum', 'energie': 'sum','badgeid': 'size'
+    }).sort_values(by=['Opérateur', 'Site'], ascending=[True,True]).reset_index(drop=True)
+
+    invoicebyoperator.rename(columns={'badgeid': 'nb sessions', 'energie': 'energie (kWh)'}, inplace=True)
+    
+    invoicebyoperator= invoicebyoperator.merge(
+        df_comms_operateurs[['Opérateur', 'Commission Recettes (%)','Commission Profits (%)']],
+        on='Opérateur',
+        how='left'
+    )
+
+    invoicebyoperator.loc[:,'frais wave'] = (invoicebyoperator['montant'] * frais_wave).round(0).astype(int)
+    invoicebyoperator.loc[:,'reversement opérateur'] = (invoicebyoperator['montant'] * invoicebyoperator['Commission Recettes (%)'] / 100).round(0).astype(int) - invoicebyoperator['frais wave']
+    invoicebyoperator.loc[:,'commission illigo TTC'] = invoicebyoperator['montant'] - invoicebyoperator['reversement opérateur']
+    invoicebyoperator.loc[:,'commission illigo HT'] = (invoicebyoperator['commission illigo TTC'] / (1 + tva)).round(0).astype(int)
+    invoicebyoperator.loc[:,'tva'] = invoicebyoperator['commission illigo TTC'] - invoicebyoperator['commission illigo HT']
+    # displayInvoice(invoicebyoperator)
+    # plotInvoice(invoicebyoperator)
+
+    return invoicebyoperator
+
+@st.fragment
+def displayInvoice(invoicebyoperator):
+    """Display the invoice data."""
+    print("Displaying invoice data...")
+    st.subheader("🔍 Résumé facturation par opérateur")
+    st.dataframe(invoicebyoperator)
+     # --- Export Excel result ---
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        invoicebyoperator.to_excel(writer, index=False, sheet_name='Synthèse')
+        df_sessions.to_excel(writer, index=False, sheet_name='Sessions')
+    output.seek(0)
+    st.success("✅ Traitement terminé. Télechargez l'Excel:")
+    st.download_button(
+        label="📥 Télécharger le fichier Excel",
+        data=output.getvalue(),
+        file_name="rapport_bornes.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+
+@st.fragment
+def plotInvoice(invoicebyoperator):
+    """Plot the invoice data."""
+    print("Plotting invoice data...")
+    fig, ax = plt.subplots(figsize=(10, 6))
+    invoicebyoperator.plot(kind='bar', x='Site', y='commission illigo HT', ax=ax, color='skyblue', legend=False)
+    ax.set_title('Commission Illigo HT par Site et Opérateur')
+    ax.set_ylabel('Commission Illigo HT (CFA)')
+    ax.set_xlabel('Site')
+    ax.grid(axis='y', linestyle='--', alpha=0.7)
+    ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f'{int(x):,}'))  # Use ',' for thousands separator
+    plt.setp(ax.get_xticklabels(), rotation=45, ha='right')
+    st.pyplot(fig)
+    img_bytes = io.BytesIO()
+    fig.savefig(img_bytes, format='png', bbox_inches='tight')
+    img_bytes.seek(0)
+    b64 = base64.b64encode(img_bytes.read()).decode()
+    href = f'<a href="data:image/png;base64,{b64}" download="commission_illigo_ht_par_operateur.png">📥 Télécharger le graphique (PNG)</a>'
+    st.markdown(href, unsafe_allow_html=True)
+
 st.set_page_config(page_title="Illigo - Analyse Sessions Console", layout="centered")
-st.title("🧮 Illigo - Analyse Sessions Console")
+# To replace the icon in the title, simply change the emoji at the start of the string.
+# For an EV charger, use the charging station emoji:
+st.title("🔌 Illigo - Analyse Sessions Console")
 st.markdown("Télécharger le rapport de sessions de charge en CSV")
+
 
 # Upload CSV and Excel files
 csv_file = st.file_uploader("Entrer le rapport sessions en CSV", type=["csv"])
@@ -20,19 +108,9 @@ comm_operateur = 0.90 # 90% de reversement opérateur par défaut
 
 if csv_file :
     # --- Read CSV ---
-    columns =['Site','Opérateur','Connecteur','Organisation','Type util','Nom util','NomPrenom','badgeid','debut','fin','duree','energie','montant','devise','arret']
-    df_sessions = pd.read_csv(csv_file, encoding='utf-8', sep = ';',dtype=str, names=columns, skiprows=1)
-
-    # pretraitement des données
-    df_sessions['debut']=pd.to_datetime(df_sessions['debut'])
-    df_sessions['fin']=pd.to_datetime(df_sessions['fin'])
-    df_sessions['duree']=pd.to_datetime(df_sessions['duree'], format = "%H:%M")
-    df_sessions['energie']=pd.to_numeric(df_sessions['energie'],downcast='float')/1000
-    df_sessions['montant']=pd.to_numeric(df_sessions['montant'],downcast='float').apply(np.ceil)
-
-    # affichage des données lues du CSV et traitées
-    st.subheader("🔍 Aperçu des sessions")
-    st.dataframe(df_sessions.head())
+    # columns =['Site','Borne','Opérateur','Connecteur','Organisation','Type util','Nom util','NomPrenom','badgeid','debut','fin','duree','energie','montant','devise','arret']
+    # df_sessions = pd.read_csv(csv_file, encoding='utf-8', sep = ';',dtype=str, names=columns, skiprows=1)
+    df_sessions = load_sessions(csv_file)
 
     # saisie des paramètres de facturation
     st.sidebar.header("⚙️ Paramètres de facturation")
@@ -51,7 +129,7 @@ if csv_file :
     with st.sidebar.form("param_date"):
         st.write("Sélectionnez la période de facturation")
         date_debut = st.date_input("Date de début", value=df_sessions['debut'].min().date())
-        date_fin = st.date_input("Date de fin", value=df_sessions['fin'].max().date())
+        date_fin = st.date_input("Date de fin", value=df_sessions['debut'].max().date())
         submitted_date = st.form_submit_button("Valider")
     if submitted_date:
         st.session_state['date_form_submitted'] = True
@@ -103,66 +181,31 @@ if csv_file :
     # --- Filter sessions by date range ---
     df_sessions = df_sessions[(df_sessions['debut'].dt.date >= date_debut) & (df_sessions['fin'].dt.date <= date_fin)]
 
-
-    invoicebyoperator = df_sessions.groupby(['Opérateur'], as_index=False).agg({
-        'montant': 'sum'
-    }).sort_values(by='montant', ascending=False).reset_index(drop=True)
+    invoicebyoperator = calculateInvoice(df_sessions, tva, frais_wave, df_comms_operateurs)
+    displayInvoice(invoicebyoperator)
+    plotInvoice(invoicebyoperator)
     
-    invoicebyoperator= invoicebyoperator.merge(
-        df_comms_operateurs[['Opérateur', 'Commission Recettes (%)','Commission Profits (%)']],
-        on='Opérateur',
-        how='left'
-    )
 
-    invoicebyoperator.loc[:,'frais wave'] = (invoicebyoperator['montant'] * frais_wave).round(0).astype(int)
-    invoicebyoperator.loc[:,'reversement opérateur'] = (invoicebyoperator['montant'] * invoicebyoperator['Commission Recettes (%)'] / 100).round(0).astype(int) - invoicebyoperator['frais wave']
-    invoicebyoperator.loc[:,'commission illigo TTC'] = invoicebyoperator['montant'] - invoicebyoperator['reversement opérateur']
-    invoicebyoperator.loc[:,'commission illigo HT'] = (invoicebyoperator['commission illigo TTC'] / (1 + tva)).round(0).astype(int)
-    invoicebyoperator.loc[:,'tva'] = invoicebyoperator['commission illigo TTC'] - invoicebyoperator['commission illigo HT']
-    
-    # cols = ['montant', 'frais wave', 
-    #        'reversement opérateur', 'commission illigo TTC', 'commission illigo HT', 'tva']
-    
-    # for col in cols:
-    #     invoicebyoperator[col] = invoicebyoperator[col].round(0).astype(int)
 
-    st.subheader("🔍 Résumé facturation par opérateur")
-    st.dataframe(invoicebyoperator)
-    # st.write(invoicebyoperator)
 
-    # plot 'commission illigo TTC' by 'Opérateur'
-    import matplotlib.ticker as mticker
-
-    fig, ax = plt.subplots(figsize=(10, 6))
-    invoicebyoperator.plot(kind='bar', x='Opérateur', y='commission illigo HT', ax=ax, color='skyblue', legend=False)
-    ax.set_title('Commission Illigo HT par Opérateur')
-    ax.set_ylabel('Commission Illigo HT (CFA)')
-    ax.set_xlabel('Opérateur')
-    ax.grid(axis='y', linestyle='--', alpha=0.7)
-    # ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f'{int(x):,}'.replace(',', ' ')))  # Use non-breaking space for thousands separator
-    ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f'{int(x):,}'))  # Use ',' for thousands separator
-    st.pyplot(fig)
+    # fig, ax = plt.subplots(figsize=(10, 6))
+    # invoicebyoperator.plot(kind='bar', x='Site', y='commission illigo HT', ax=ax, color='skyblue', legend=False)
+    # ax.set_title('Commission Illigo HT par Site et Opérateur')
+    # ax.set_ylabel('Commission Illigo HT (CFA)')
+    # ax.set_xlabel('Site')
+    # ax.grid(axis='y', linestyle='--', alpha=0.7)
+    # ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f'{int(x):,}'))  # Use ',' for thousands separator
+    # plt.setp(ax.get_xticklabels(), rotation=45, ha='right')
+    # st.pyplot(fig)
     # Add a button to download the plot as a PNG file
 
-    img_bytes = io.BytesIO()
-    fig.savefig(img_bytes, format='png', bbox_inches='tight')
-    img_bytes.seek(0)
-    b64 = base64.b64encode(img_bytes.read()).decode()
-    href = f'<a href="data:image/png;base64,{b64}" download="commission_illigo_ht_par_operateur.png">📥 Télécharger le graphique (PNG)</a>'
-    st.markdown(href, unsafe_allow_html=True)
+    # img_bytes = io.BytesIO()
+    # fig.savefig(img_bytes, format='png', bbox_inches='tight')
+    # img_bytes.seek(0)
+    # b64 = base64.b64encode(img_bytes.read()).decode()
+    # href = f'<a href="data:image/png;base64,{b64}" download="commission_illigo_ht_par_operateur.png">📥 Télécharger le graphique (PNG)</a>'
+    # st.markdown(href, unsafe_allow_html=True)
     # Save the plot to a file
     # fig.savefig("commission_illigo_ht_par_operateur.png", bbox_inches='tight')
 
-    # --- Export Excel result ---
-    output = io.BytesIO()
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        invoicebyoperator.to_excel(writer, index=False, sheet_name='Synthèse')
-        df_sessions.to_excel(writer, index=False, sheet_name='Sessions')
-    output.seek(0)
-    st.success("✅ Traitement terminé. Télechargez l'Excel:")
-    st.download_button(
-        label="📥 Télécharger le fichier Excel",
-        data=output.getvalue(),
-        file_name="rapport_bornes.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
+    
