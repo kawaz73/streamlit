@@ -185,27 +185,3 @@ if csv_file :
     displayInvoice(invoicebyoperator)
     plotInvoice(invoicebyoperator)
     
-
-
-
-    # fig, ax = plt.subplots(figsize=(10, 6))
-    # invoicebyoperator.plot(kind='bar', x='Site', y='commission illigo HT', ax=ax, color='skyblue', legend=False)
-    # ax.set_title('Commission Illigo HT par Site et Opérateur')
-    # ax.set_ylabel('Commission Illigo HT (CFA)')
-    # ax.set_xlabel('Site')
-    # ax.grid(axis='y', linestyle='--', alpha=0.7)
-    # ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f'{int(x):,}'))  # Use ',' for thousands separator
-    # plt.setp(ax.get_xticklabels(), rotation=45, ha='right')
-    # st.pyplot(fig)
-    # Add a button to download the plot as a PNG file
-
-    # img_bytes = io.BytesIO()
-    # fig.savefig(img_bytes, format='png', bbox_inches='tight')
-    # img_bytes.seek(0)
-    # b64 = base64.b64encode(img_bytes.read()).decode()
-    # href = f'<a href="data:image/png;base64,{b64}" download="commission_illigo_ht_par_operateur.png">📥 Télécharger le graphique (PNG)</a>'
-    # st.markdown(href, unsafe_allow_html=True)
-    # Save the plot to a file
-    # fig.savefig("commission_illigo_ht_par_operateur.png", bbox_inches='tight')
-
-    
