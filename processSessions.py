@@ -178,7 +178,7 @@ if csv_file :
     st.dataframe(df_comms_operateurs.head())
     
     # --- Filter sessions by date range ---
-    df_sessions = df_sessions[(df_sessions['debut'].dt.date >= date_debut) & (df_sessions['fin'].dt.date <= date_fin)]
+    df_sessions = df_sessions[(df_sessions['debut'].dt.date >= date_debut) & (df_sessions['debut'].dt.date <= date_fin)]
 
     invoicebyoperator = calculateInvoice(df_sessions, tva, frais_wave, df_comms_operateurs)
     displayInvoice(invoicebyoperator)
