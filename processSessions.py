@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 import openpyxl
 import base64
+import sessionsAnalytics as sa
 #import math
 
 @st.cache_data
@@ -21,6 +22,7 @@ def load_sessions(file):
     df['duree']=pd.to_datetime(df['duree'], format = "%H:%M")
     df['energie']=pd.to_numeric(df['energie'],downcast='float')/1000
     df['montant']=pd.to_numeric(df['montant'],downcast='float').apply(np.ceil)
+    df['date'] = df['debut'].dt.date
 
     # affichage des données lues du CSV et traitées
     st.subheader("🔍 Aperçu des sessions")
@@ -94,8 +96,6 @@ def plotInvoice(invoicebyoperator):
     st.markdown(href, unsafe_allow_html=True)
 
 st.set_page_config(page_title="Illigo - Analyse Sessions Console", layout="centered")
-# To replace the icon in the title, simply change the emoji at the start of the string.
-# For an EV charger, use the charging station emoji:
 st.title("🔌 Illigo - Analyse Sessions Console")
 st.markdown("Télécharger le rapport de sessions de charge en CSV")
 
@@ -108,8 +108,7 @@ comm_operateur = 0.90 # 90% de reversement opérateur par défaut
 
 if csv_file :
     # --- Read CSV ---
-    # columns =['Site','Borne','Opérateur','Connecteur','Organisation','Type util','Nom util','NomPrenom','badgeid','debut','fin','duree','energie','montant','devise','arret']
-    # df_sessions = pd.read_csv(csv_file, encoding='utf-8', sep = ';',dtype=str, names=columns, skiprows=1)
+   
     df_sessions = load_sessions(csv_file)
 
     # saisie des paramètres de facturation
@@ -185,3 +184,6 @@ if csv_file :
     displayInvoice(invoicebyoperator)
     plotInvoice(invoicebyoperator)
     
+#    sa.plotSessionsbyDay(df_sessions, datetime.datetime(date_debut), datetime.datetime(date_debut))
+    sa.plotSessionsbyDay(df_sessions, date_debut, date_fin)
+   # sa.plotSessionsbyDay(df_sessions, '2025-05-03', '2025-05-04')
